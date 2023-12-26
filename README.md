@@ -7,4 +7,4 @@ It will send a no league gif when the word "league" is mentioned.
 
 It will send a no valorant gif when the word "val" or "valorant" is mentioned
 
-This has no practical use.
+# This has no practical use.
