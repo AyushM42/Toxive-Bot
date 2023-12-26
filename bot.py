@@ -15,7 +15,7 @@ async def send_message(message, user_message):
             if now>=s['dusk'] or now<=s['dawn']:
                 print("It is nighttime.")
                 if responses.handle_response(user_message):
-                    if user_message.lower() != "The night is still young...":
+                    if "the night is still young" not in user_message.lower():
                         await message.reply("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
     except Exception as e:
