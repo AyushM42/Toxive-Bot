@@ -14,15 +14,15 @@ async def send_message(message, user_message):
     try:
             #League
             if responses.league_response(user_message):
-                await message.channel.send("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
+                await message.reply("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
 
             #Val
             if responses.val_response(user_message):
-                await message.channel.send("https://tenor.com/view/rule18-gif-23154950")
+                await message.reply("https://tenor.com/view/rule18-gif-23154950")
 
             #one piece
-            if responses.one_piece_response_response(user_message):
-                await message.channel.send("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
+            if responses.one_piece_response(user_message):
+                await message.reply("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
 
 
             #Night is still young
