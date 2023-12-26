@@ -34,8 +34,6 @@ async def send_message(message, user_message):
                         await message.reply("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
 
-            if now.hour>6 and now.hour>=18:
-
     except Exception as e:
         print(e)
 
