@@ -1,4 +1,5 @@
 import discord
+import config
 import responses
 from datetime import datetime
 import pytz
@@ -20,7 +21,7 @@ async def send_message(message, user_message):
         print(e)
 
 def run_discord_bot():
-    TOKEN = 'MTE4OTAyODA5ODMwMjI4Mzk1Nw.G_GmOh.ASYG78fsJ-kKD-pu2cmP0tncWUXV2EHG_PQ5XE'
+    TOKEN = config.TOKEN
     intents = discord.Intents.default()
     intents.message_content = True
     client = discord.Client(intents=intents)
