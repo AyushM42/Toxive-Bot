@@ -11,6 +11,10 @@ def night_response(message):
 def league_response(message):
     league_strings = ["league"]
     split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
     
 
 def val_response(message):
