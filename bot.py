@@ -1,20 +1,20 @@
 import discord
-import pytz
 import responses
 import datetime
-from astral import Astral
+import pytz
+from astral import LocationInfo, zoneinfo
+from astral.sun import sun
 
 async def send_message(message, user_message):
     try:
-
-        a = Astral()
-        city = a['Irvine']
-        now = datetime.now(pytz.pst)
-        sun = city.sun(date=now, local=True)
-        if now >=sun['dusk'] or now <= sun['dawn']:
-            if responses.handle_response(user_message):
-                await message.channel.send("The night is still young...")
-                await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
+            city = LocationInfo("Irvine", "California", "America/Los Angeles", 33.6846, 117.82656)
+            timezone = zoneinfo.ZoneInfo("America/Los Angeles")
+            now = datetime.now(pytz.pst)
+            s = sun(city.observer, date=now, tzinfo=timezone)
+            if now>=s['dusk'] or now<=s['dawn']:
+                if responses.handle_response(user_message):
+                    await message.channel.send("The night is still young...")
+                    await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
     except Exception as e:
         print(e)
 
