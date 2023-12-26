@@ -8,20 +8,23 @@ from astral.sun import sun
 
 async def send_message(message, user_message):
     try:
+            #League
+            if responses.league_response(user_message):
+                 await message.channel.send("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
+
+            #Val
+            if responses.val_response():
+                 await message.channel.send("https://tenor.com/view/rule18-gif-23154950")
+
+
+            #Night is still young
             city = LocationInfo("Irvine", "California", "America/Los_Angeles", 33.6846, 117.82656)
             timezone = zoneinfo.ZoneInfo("America/Los_Angeles")
             now = datetime.now(timezone)
             s = sun(city.observer, date=now, tzinfo=timezone)
-            if "league" in user_message.lower():
-                 await message.channel.send("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
-
-            if ("val" in user_message.lower()) or ("valorant" in user_message.lower()):
-                 await message.channel.send("https://tenor.com/view/rule18-gif-23154950")
-
-                 
             if now>=s['dusk'] or now<=s['dawn']:
                 print("It is nighttime.")
-                if responses.handle_response(user_message):
+                if responses.night_response(user_message):
                     if "the night is still young" not in user_message.lower():
                         await message.reply("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
