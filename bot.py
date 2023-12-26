@@ -20,15 +20,21 @@ async def send_message(message, user_message):
             if responses.val_response(user_message):
                 await message.channel.send("https://tenor.com/view/rule18-gif-23154950")
 
+            #one piece
+            if responses.one_piece_response_response(user_message):
+                await message.channel.send("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
+
 
             #Night is still young
             now = datetime.now()
-            if now.hour<=6 or now.hour>=18:
+            if now.hour<6 or now.hour>=18:
                 print("It is nighttime.")
                 if responses.night_response(user_message):
                     if "the night is still young" not in user_message.lower():
                         await message.reply("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
+
+            if now.hour>6 and now.hour>=18:
 
     except Exception as e:
         print(e)

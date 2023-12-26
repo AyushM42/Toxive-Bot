@@ -15,6 +15,13 @@ def league_response(message):
         if ss.lower() in league_strings:
             return True
     return False
+
+
+def one_piece_response(message):
+    league_strings = ["one piece"]
+    if "one piece" in message.lower():
+            return True
+    return False
     
 
 def val_response(message):
