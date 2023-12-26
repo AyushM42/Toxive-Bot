@@ -1,10 +1,12 @@
 import discord
 import responses
+import datetime
 
 async def send_message(message, user_message):
     try:
-        response = responses.handle_response(user_message)
-        await message.channel.send(response)
+        if responses.handle_response(user_message):
+            await message.channel.send("The night is still young...")
+            await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
     except Exception as e:
         print(e)
 
