@@ -2,9 +2,10 @@ import discord
 from discord.ext import commands
 import config
 import responses
-from datetime import datetime
+from datetime import datetime, timezone
 import pytz
 from astral import LocationInfo, zoneinfo
+from astral.location import Location
 from astral.sun import sun
 import asyncio
 
@@ -21,11 +22,8 @@ async def send_message(message, user_message):
 
 
             #Night is still young
-            city = LocationInfo("Irvine", "California", "America/Los_Angeles", 33.6846, 117.82656)
-            timezone = zoneinfo.ZoneInfo("America/Los_Angeles")
-            now = datetime.now(timezone)
-            s = sun(city.observer, date=now, tzinfo=timezone)
-            if now>=s['dusk'] or now<=s['dawn']:
+            now = datetime.now()
+            if now.hour<=6 or now.hour>=18:
                 print("It is nighttime.")
                 if responses.night_response(user_message):
                     if "the night is still young" not in user_message.lower():
