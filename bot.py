@@ -1,17 +1,18 @@
 import discord
 import responses
-import datetime
+from datetime import datetime
 import pytz
 from astral import LocationInfo, zoneinfo
 from astral.sun import sun
 
 async def send_message(message, user_message):
     try:
-            city = LocationInfo("Irvine", "California", "America/Los Angeles", 33.6846, 117.82656)
-            timezone = zoneinfo.ZoneInfo("America/Los Angeles")
-            now = datetime.now(pytz.pst)
+            city = LocationInfo("Irvine", "California", "America/Los_Angeles", 33.6846, 117.82656)
+            timezone = zoneinfo.ZoneInfo("America/Los_Angeles")
+            now = datetime.now(timezone)
             s = sun(city.observer, date=now, tzinfo=timezone)
             if now>=s['dusk'] or now<=s['dawn']:
+                print("It is nighttime.")
                 if responses.handle_response(user_message):
                     await message.channel.send("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
@@ -20,10 +21,25 @@ async def send_message(message, user_message):
 
 def run_discord_bot():
     TOKEN = 'MTE4OTAyODA5ODMwMjI4Mzk1Nw.GcA7Ge.vRP4DUo_5oEzrFyMwEhCPlRjFirvd8umWH6im0'
-    client = discord.Client()
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = discord.Client(intents=intents)
+
 
     @client.event
     async def on_ready():
         print(f'{client.user} is now running.')
 
+
+    @client.event
+    async def on_message(message):
+         if message.author == client.user:
+              return
+         
+         username = str(message.author)
+         user_message = str(message.content)
+         channel = str(message.channel)
+         print(f"{username} said: '{user_message}' ({channel})")
+
+         await send_message(message, user_message)
     client.run(TOKEN)
