@@ -16,7 +16,7 @@ async def send_message(message, user_message):
                  await message.channel.send("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
 
             if ("val" in user_message.lower()) or ("valorant" in user_message.lower()):
-                 await message.channel.send("https://images-ext-2.discordapp.net/external/AjfAoSgU3g4O7OlxPl_j9IGr9OywDcRoD2TWpCwmaB8/https/media.tenor.com/4WbULfXsHfkAAAPo/rule18-no-valorant.mp4")
+                 await message.channel.send("https://tenor.com/view/rule18-gif-23154950")
 
                  
             if now>=s['dusk'] or now<=s['dawn']:
