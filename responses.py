@@ -31,3 +31,25 @@ def val_response(message):
         if ss.lower() in val_strings:
             return True
     return False
+
+def kys_response(message):
+    league_strings = ["kys"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
+
+def jjk_response(message):
+    league_strings = ["jjk"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    if "jujutsu kaisen" in message.lower():
+        return True
+    return False
+
+def toxjr_response(message):
+    if message == "Junior?":
+        return True

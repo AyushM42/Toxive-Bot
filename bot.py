@@ -24,6 +24,17 @@ async def send_message(message, user_message):
             if responses.one_piece_response(user_message):
                 await message.reply("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
 
+            #LowTierGod
+            if responses.kys_response(user_message):
+                await message.channel.send("https://tenor.com/view/ltg-low-tier-god-yskysn-ltg-thunder-thunder-gif-23523876")
+
+            #JJK
+            if responses.jjk_response(user_message):
+                await message.reply("https://tenor.com/view/homeless-nah-id-win-gif-11399565856913576326")
+
+            if responses.toxjr_response(user_message):
+                await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+
 
             #Night is still young
             now = datetime.now()
@@ -52,7 +63,7 @@ def run_discord_bot():
     @client.event
     async def on_message(message):
         if message.author == client.user:
-              return
+                return
 
         username = str(message.author)
         user_message = str(message.content)
