@@ -40,7 +40,7 @@ def kys_response(message):
             return True
     return False
 
-def jjk_response(message):
+"""def jjk_response(message):
     league_strings = ["jjk"]
     split_strings = message.split()
     for ss in split_strings:
@@ -48,8 +48,12 @@ def jjk_response(message):
             return True
     if "jujutsu kaisen" in message.lower():
         return True
-    return False
+    return False"""
 
 def toxjr_response(message):
     if message == "Junior?":
+        return True
+    
+def joever_response(message):
+    if "joever" in message.lower():
         return True

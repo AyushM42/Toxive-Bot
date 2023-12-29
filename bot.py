@@ -28,12 +28,18 @@ async def send_message(message, user_message):
             if responses.kys_response(user_message):
                 await message.channel.send("https://tenor.com/view/ltg-low-tier-god-yskysn-ltg-thunder-thunder-gif-23523876")
 
-            #JJK
+            """JJK
             if responses.jjk_response(user_message):
-                await message.reply("https://tenor.com/view/homeless-nah-id-win-gif-11399565856913576326")
+                await message.reply("https://tenor.com/view/homeless-nah-id-win-gif-11399565856913576326")"""
 
+            #toxivejr
             if responses.toxjr_response(user_message):
                 await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+
+
+            #joever
+            if responses.joever_response(user_message):
+                await message.reply(file=discord.File('itsjoever.jpeg'))
 
 
             #Night is still young
