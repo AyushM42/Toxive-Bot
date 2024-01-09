@@ -10,36 +10,58 @@ from astral.sun import sun
 import asyncio
 
 
+async def send_special_message(message, user_message):
+    try:
+        if user_message == "Junior, is everything okay?":
+            await message.reply("I shall have my revenge.")
+        
+
+    except Exception as e:
+        print(e)
+
 async def send_message(message, user_message):
     try:
             #League
             if responses.league_response(user_message):
+                print("League mentioned")
                 await message.reply("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
 
             #Val
             if responses.val_response(user_message):
+                print("Val mentioned")
                 await message.reply("https://tenor.com/view/rule18-gif-23154950")
 
             #one piece
             if responses.one_piece_response(user_message):
+                print("One piece mentioned")
                 await message.reply("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
 
             #LowTierGod
             if responses.kys_response(user_message):
                 await message.channel.send("https://tenor.com/view/ltg-low-tier-god-yskysn-ltg-thunder-thunder-gif-23523876")
 
-            """JJK
+            #JJK
             if responses.jjk_response(user_message):
-                await message.reply("https://tenor.com/view/homeless-nah-id-win-gif-11399565856913576326")"""
+                print("jjk mentioned")
+                await message.reply("https://tenor.com/view/rule137-no-jujutsu-kaisen-gif-23697731")
 
             #toxivejr
             if responses.toxjr_response(user_message):
-                await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+                if str(message.author) == "beesechurger1":
+                    await message.reply("I've had enough of your tomfoolery, Destiny.")
+                else:
+                    await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
 
 
             #joever
             if responses.joever_response(user_message):
+                print("Joever mentioned")
                 await message.reply(file=discord.File('itsjoever.jpeg'))
+
+            #hi = hi
+            if (responses.hi_response(user_message) == 1) or (responses.hi_response(user_message) == 2):
+                await message.channel.send(user_message)
+
 
 
             #Night is still young
@@ -47,6 +69,7 @@ async def send_message(message, user_message):
             if now.hour<6 or now.hour>=18:
                 print("It is nighttime.")
                 if responses.night_response(user_message):
+                    print("Night mentioned")
                     if "the night is still young" not in user_message.lower():
                         await message.reply("The night is still young...")
                     await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
@@ -72,8 +95,12 @@ def run_discord_bot():
                 return
 
         username = str(message.author)
-        user_message = str(message.content)
+        user_message = str(message.content).strip("!")
         channel = str(message.channel)
         print(f"{username} said: '{user_message}' ({channel})")
         await send_message(message, user_message)
+        #await message.channel.send("i really fw your energy")
+        if username == "toxive":
+            await send_special_message(message, user_message)
+
     client.run(TOKEN)

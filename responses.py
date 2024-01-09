@@ -1,5 +1,5 @@
 def night_response(message):
-    night_strings = ["tired", "goodnight", "sleep", "late", "night", "bed", "gn", "bedtime", "midnight"]
+    night_strings = ["tired", "goodnight", "sleep", "late", "night", "bed", "gn", "bedtime", "midnight", "sleepy"]
     split_strings = message.split()
     for ss in split_strings:
         if ss.lower() in night_strings:
@@ -33,14 +33,14 @@ def val_response(message):
     return False
 
 def kys_response(message):
-    league_strings = ["kys"]
+    league_strings = ["kys", "kms"]
     split_strings = message.split()
     for ss in split_strings:
         if ss.lower() in league_strings:
             return True
     return False
 
-"""def jjk_response(message):
+def jjk_response(message):
     league_strings = ["jjk"]
     split_strings = message.split()
     for ss in split_strings:
@@ -48,7 +48,7 @@ def kys_response(message):
             return True
     if "jujutsu kaisen" in message.lower():
         return True
-    return False"""
+    return False
 
 def toxjr_response(message):
     if message == "Junior?":
@@ -57,3 +57,10 @@ def toxjr_response(message):
 def joever_response(message):
     if "joever" in message.lower():
         return True
+    
+def hi_response(message):
+    message = message.lower()
+    if message[0:2] == "hi" and message[2:].strip("i").strip() == "":
+        return 1
+    if message[0:2] == "ha" and message[2:].strip("i").strip() == "":
+        return 2
