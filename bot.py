@@ -3,10 +3,6 @@ from discord.ext import commands
 import config
 import responses
 from datetime import datetime, timezone
-import pytz
-from astral import LocationInfo, zoneinfo
-from astral.location import Location
-from astral.sun import sun
 import asyncio
 
 
@@ -47,10 +43,11 @@ async def send_message(message, user_message):
 
             #toxivejr
             if responses.toxjr_response(user_message):
-                if str(message.author) == "beesechurger1":
-                    await message.reply("I've had enough of your tomfoolery, Destiny.")
-                else:
-                    await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+                await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+
+            if responses.honkai_response(user_message):
+                print("honkai mentioned")
+                await message.reply("https://tenor.com/view/honkai-gif-14136885181316463224")
 
 
             #joever
@@ -60,14 +57,15 @@ async def send_message(message, user_message):
 
             #hi = hi
             if (responses.hi_response(user_message) == 1) or (responses.hi_response(user_message) == 2):
+                print("hi mentioned")
                 await message.channel.send(user_message)
+
 
 
 
             #Night is still young
             now = datetime.now()
-            if now.hour<6 or now.hour>=18:
-                print("It is nighttime.")
+            if now.hour<7 or now.hour>=19.5:
                 if responses.night_response(user_message):
                     print("Night mentioned")
                     if "the night is still young" not in user_message.lower():

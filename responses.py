@@ -1,5 +1,5 @@
 def night_response(message):
-    night_strings = ["tired", "goodnight", "sleep", "late", "night", "bed", "gn", "bedtime", "midnight", "sleepy"]
+    night_strings = ["tired", "goodnight", "sleep", "late", "night", "bed", "gn", "bedtime", "midnight", "sleepy", "tonight"]
     split_strings = message.split()
     for ss in split_strings:
         if ss.lower() in night_strings:
@@ -10,6 +10,14 @@ def night_response(message):
 
 def league_response(message):
     league_strings = ["league"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
+
+def honkai_response(message):
+    league_strings = ["honkai", "starrail"]
     split_strings = message.split()
     for ss in split_strings:
         if ss.lower() in league_strings:
