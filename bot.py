@@ -70,7 +70,7 @@ async def send_message(message, user_message):
                     print("Night mentioned")
                     if "the night is still young" not in user_message.lower():
                         await message.reply("The night is still young...")
-                    await message.channel.send("https://tenor.com/view/batman-gif-4439279616571508647")
+                    await message.channel.send("https://cdn.discordapp.com/attachments/1216832432037298419/1230412824807997460/IMG_1386.gif?ex=66333a3d&is=6620c53d&hm=b56c5670ac3b3972712586ecd47dd409715b9e67d521041c6ed64c605daee954&")
 
     except Exception as e:
         print(e)
