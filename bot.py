@@ -141,7 +141,7 @@ def run_discord_bot():
         print(f"{username} said: '{user_message}' ({channel})")
         if (username not in mute_set):
             if (await send_message(message, user_message)):
-                if (username != "tofdasxive"):
+                if (username != "toxive"):
                     await user_timeout(username)
         else:
             print("User muted, message not processed")
