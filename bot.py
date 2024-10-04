@@ -132,7 +132,6 @@ def run_discord_bot():
         user_message = str(message.content).strip("!")
         channel = str(message.channel)
         print(f"{username} said: '{user_message}' ({channel})")
-        print(mute_set)
         if (username not in mute_set):
             if (await send_message(message, user_message)):
                 if (username != "tofdasxive"):
