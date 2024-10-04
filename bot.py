@@ -58,6 +58,12 @@ async def send_message(message, user_message):
                 responded = True
                 await message.reply("https://tenor.com/view/honkai-gif-14136885181316463224")
 
+            #fort
+            if responses.fortnite_respons(user_message):
+                print("fort mentioned")
+                responded = True
+                await message.reply("https://tenor.com/view/goku-party-party-gif-18335541801151517525")
+
 
             #joever
             if responses.joever_response(user_message):
@@ -81,6 +87,7 @@ async def send_message(message, user_message):
                 responded = True
                 await message.channel.send(user_message)
 
+            
 
 
 

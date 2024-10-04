@@ -55,6 +55,14 @@ def val_response(message):
             return True
     return False
 
+def fortnite_respons(message):
+    val_strings = ["fortnite", "fort"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in val_strings:
+            return True
+    return False
+
 def kys_response(message):
     league_strings = ["kys", "kms"]
     split_strings = message.split()
