@@ -16,6 +16,16 @@ def league_response(message):
             return True
     return False
 
+def bankai_response(message):
+    league_strings = ["bankai", "https://tenor.com/view/bleach-bankai-court-young-thug-thug-gif-7984140487879273755", "https://tenor.com/view/me-showing-the-class-my-bankai-gif-580868976631931335"]
+    if "bankai" in message.lower():
+        return True
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
+
 def honkai_response(message):
     league_strings = ["honkai", "starrail"]
     split_strings = message.split()
@@ -28,6 +38,11 @@ def honkai_response(message):
 def one_piece_response(message):
     league_strings = ["one piece"]
     if "one piece" in message.lower():
+            return True
+    return False
+
+def bubblesort_response(message):
+    if ("bubble sort" in message.lower()) or ("buble sort" in message.lower()):
             return True
     return False
     
@@ -68,7 +83,7 @@ def joever_response(message):
     
 def hi_response(message):
     message = message.lower()
-    if message[0:2] == "hi" and message[2:].strip("i").strip() == "":
+    if message[0:2] == "hi" and message.split()[0][2:].strip("i").strip() == "":
         return 1
-    if message[0:2] == "ha" and message[2:].strip("i").strip() == "":
+    if message[0:2] == "ha" and message.split()[0][2:].strip("i").strip() == "":
         return 2
