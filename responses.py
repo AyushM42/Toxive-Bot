@@ -89,6 +89,13 @@ def joever_response(message):
     if "joever" in message.lower():
         return True
     
+def im_response(message):
+    val_strings = ["i'm", "im"]
+    split_strings = message.lower().split()
+    if split_strings[0] in val_strings:
+        return True
+    return False
+    
 def hi_response(message):
     message = message.lower()
     if message[0:2] == "hi" and message.split()[0][2:].strip("i").strip() == "":

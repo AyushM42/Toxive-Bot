@@ -86,6 +86,12 @@ async def send_message(message, user_message):
                 print("hi mentioned")
                 responded = True
                 await message.channel.send(user_message)
+                        #I"M JUNIOR
+            if responses.im_response(user_message):
+                print("Im mentioned")
+                responded = True
+                reply_string = "Hi " + " ".join(user_message.split()[1:]) + " I'm Toxive Jr."
+                await message.reply(reply_string, file=discord.File('toxivejunior.png'))
 
             
 
