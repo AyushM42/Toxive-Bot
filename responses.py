@@ -6,10 +6,24 @@ def night_response(message):
             return True
     return False
     
-    
+def venom_response(message):
+    league_strings = ["venom"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
 
 def league_response(message):
     league_strings = ["league"]
+    split_strings = message.split()
+    for ss in split_strings:
+        if ss.lower() in league_strings:
+            return True
+    return False
+
+def rivals_response(message):
+    league_strings = ["rivals", "rival"]
     split_strings = message.split()
     for ss in split_strings:
         if ss.lower() in league_strings:

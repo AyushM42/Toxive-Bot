@@ -48,6 +48,11 @@ async def send_message(message, user_message):
                 responded = True
                 await message.reply("https://tenor.com/view/rule137-no-jujutsu-kaisen-gif-23697731")
 
+            if responses.venom_response(user_message):
+                print("venom mentioned")
+                responded = True
+                await message.reply("https://tenor.com/view/venom-venom-marvel-venom-funny-venom-the-last-dance-venom-hot-ones-gif-1749787248943684479")
+
             #toxivejr
             if responses.toxjr_response(user_message):
                 responded = True
@@ -63,6 +68,15 @@ async def send_message(message, user_message):
                 print("fort mentioned")
                 responded = True
                 await message.reply("https://tenor.com/view/goku-party-party-gif-18335541801151517525")
+
+            #Rivals
+            if responses.rivals_response(user_message):
+                print("rivals mentioned")
+                responded = True
+                if str(message.author) == "girlsonly":
+                    await message.reply("https/media.tenor.com/WsuZF_MwxTIAAAPo/jeff-yeet.mp4")
+                else: 
+                    await message.reply("https://tenor.com/view/jeff-the-shark-marvel-rivals-kill-jeff-the-shark-yowd-gif-7825075933685935821")
 
 
             #joever
@@ -87,11 +101,11 @@ async def send_message(message, user_message):
                 responded = True
                 await message.channel.send(user_message)
                         #I"M JUNIOR
-            if responses.im_response(user_message):
-                print("Im mentioned")
-                responded = True
-                reply_string = "Hi " + " ".join(user_message.split()[1:]) + ", I'm Toxive Jr."
-                await message.reply(reply_string, file=discord.File('toxivejunior.png'))
+            # if responses.im_response(user_message):
+            #     print("Im mentioned")
+            #     responded = True
+            #     reply_string = "Hi " + " ".join(user_message.split()[1:]) + ", I'm Toxive Jr."
+            #     await message.reply(reply_string, file=discord.File('toxivejunior.png'))
 
             
 
