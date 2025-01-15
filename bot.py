@@ -74,7 +74,7 @@ async def send_message(message, user_message):
                 print("rivals mentioned")
                 responded = True
                 if str(message.author) == "girlsonly":
-                    await message.reply("https/media.tenor.com/WsuZF_MwxTIAAAPo/jeff-yeet.mp4")
+                    await message.reply("https://tenor.com/view/jeff-yeet-hulk-marvel-rivals-trowing-jeff-gif-6542491211829134642")
                 else: 
                     await message.reply("https://tenor.com/view/jeff-the-shark-marvel-rivals-kill-jeff-the-shark-yowd-gif-7825075933685935821")
 
