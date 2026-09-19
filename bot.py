@@ -3,7 +3,7 @@ from discord.ext import commands
 import config
 import responses
 from datetime import datetime, timezone
-import random
+from random import random
 import asyncio
 import time
 
