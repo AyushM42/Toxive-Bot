@@ -60,7 +60,7 @@ async def send_message(message, user_message):
                 if random()>.2:
                     await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
                 else:
-                    await message.reply("",file=discord.File('juniorlantern.png'))
+                    await message.reply("",file=discord.File('juniorlantern.jpeg'))
 
             if responses.honkai_response(user_message):
                 print("honkai mentioned")
