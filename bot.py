@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import config
 import responses
-from datetime import datetime, timezone
+from datetime import datetime, timezone\
+import random
 import asyncio
 import time
 
@@ -56,7 +57,10 @@ async def send_message(message, user_message):
             #toxivejr
             if responses.toxjr_response(user_message):
                 responded = True
-                await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+                if random()>.2:
+                    await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
+                else:
+                    await message.reply("",file=discord.File('juniorlantern.png'))
 
             if responses.honkai_response(user_message):
                 print("honkai mentioned")
