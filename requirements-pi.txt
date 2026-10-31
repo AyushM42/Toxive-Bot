@@ -1,0 +1,6 @@
+discord.py>=2.3
+ruamel.yaml>=0.18
+llama-cpp-python>=0.3.0
+huggingface_hub>=0.24
+numpy
+pillow

@@ -1,0 +1,114 @@
+# Toxive Jr keyword replies. The bot reloads this file automatically when it changes.
+#
+# Triggers (an entry fires if ANY of them match):
+#   words:    whole words, case-insensitive, punctuation ignored    words: [val, valorant]
+#   contains: text anywhere in the message, case-insensitive        contains: [one piece]
+#   exact:    the whole message, case-sensitive                     exact: ["Junior?"]
+#   regex:    a regular expression, case-insensitive                regex: '^hi+\b'
+#
+# What to send:
+#   text: some text or a gif link
+#   file: an image/gif in the bot folder (or media/)
+#   mode: reply (default, replies to the message) or send (plain message in the channel)
+#   echo: true sends the user's own message back
+#   random: a list of options (each with text/file/mode and an optional weight); one is picked
+#   actions: a list of things to send, in order
+#   unless_contains: skip an action if the message contains this text
+#
+# Conditions:
+#   only_users / except_users: Discord usernames
+#   hours: [start, end] in 24h time, e.g. [20, 7] means 8pm until 7am
+#   chance: 0.0-1.0 probability of firing when triggered
+#   mute: false stops this reply from muting the user for a minute
+#   ignore_mute: true fires even while the user is muted
+#
+# Owner commands in Discord (only works for the owner in settings.py):
+#   !addreply word, some phrase | reply text or gif link   (attach an image to send it instead)
+#   !delreply <name>    !replies    !reload    !shutup / !talk (unprompted AI replies)
+
+- name: league
+  words: [league]
+  text: https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770
+
+- name: val
+  words: [val, valorant]
+  text: https://tenor.com/view/rule18-gif-23154950
+
+- name: one piece
+  contains: [one piece]
+  text: https://tenor.com/view/rule154-no-one-piece-gif-23700813
+
+- name: ltg
+  words: [kys, kms]
+  mode: send
+  text: https://tenor.com/view/ltg-low-tier-god-yskysn-ltg-thunder-thunder-gif-23523876
+
+- name: jjk
+  words: [jjk]
+  contains: [jujutsu kaisen]
+  text: https://tenor.com/view/rule137-no-jujutsu-kaisen-gif-23697731
+
+- name: venom
+  words: [venom]
+  text: https://tenor.com/view/venom-venom-marvel-venom-funny-venom-the-last-dance-venom-hot-ones-gif-1749787248943684479
+
+- name: junior
+  exact: ["Junior?"]
+  random:
+  - weight: 0.8
+    text: Ready to comply.
+    file: toxivejunior.png
+  - weight: 0.2
+    file: juniorlantern.jpeg
+
+- name: honkai
+  words: [honkai, starrail]
+  text: https://tenor.com/view/honkai-gif-14136885181316463224
+
+- name: fortnite
+  words: [fortnite, fort]
+  text: https://tenor.com/view/goku-party-party-gif-18335541801151517525
+
+- name: rivals (girlsonly)
+  words: [rivals, rival]
+  only_users: [girlsonly]
+  text: https://tenor.com/view/jeff-yeet-hulk-marvel-rivals-trowing-jeff-gif-6542491211829134642
+
+- name: rivals
+  words: [rivals, rival]
+  except_users: [girlsonly]
+  text: https://tenor.com/view/jeff-the-shark-marvel-rivals-kill-jeff-the-shark-yowd-gif-7825075933685935821
+
+- name: joever
+  contains: [joever]
+  file: itsjoever.jpeg
+
+- name: bankai
+  contains: [bankai]
+  file: nobankai.gif
+
+- name: bubble sort
+  contains: [bubble sort, buble sort]
+  mode: send
+  file: bubblesortmybeloved.gif
+
+- name: hi echo
+  regex: '^(hi+|hai*)(\s|$)'
+  mode: send
+  echo: true
+
+- name: night
+  words: [tired, goodnight, sleep, late, night, bed, gn, bedtime, midnight, sleepy, tonight]
+  hours: [20, 7]
+  actions:
+  - text: The night is still young...
+    unless_contains: the night is still young
+  - mode: send
+    text: https://cdn.discordapp.com/attachments/1216832432037298419/1230412824807997460/IMG_1386.gif?ex=66333a3d&is=6620c53d&hm=b56c5670ac3b3972712586ecd47dd409715b9e67d521041c6ed64c605daee954&
+
+- name: revenge
+  exact: ["Junior, is everything okay?"]
+  only_users: [toxive]
+  mute: false
+  ignore_mute: true
+  text: I shall have my revenge.

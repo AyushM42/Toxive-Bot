@@ -1,135 +1,50 @@
-import discord
-from discord.ext import commands
-import config
-import responses
-from datetime import datetime, timezone
-from random import random
 import asyncio
 import time
+from datetime import datetime
+from pathlib import Path
+from random import random
+
+import discord
+
+import ai
+import chatformat
+import config
+import settings
+import status
+from keywords import MEDIA_DIR, MEDIA_TYPES, ReplyBook, actions_for, resolve_file, words_in
+
+BASE_DIR = Path(__file__).resolve().parent
+book = ReplyBook(BASE_DIR / "replies.yaml")
+
+HELP = (
+    "`!addreply word, some phrase | reply text or gif link` (attach an image to send it)\n"
+    "`!delreply <name>`  `!replies`  `!reload`\n"
+    "`!shutup` / `!talk` turn unprompted AI replies off / on"
+)
 
 
-async def send_special_message(message, user_message):
-    try:
-        if user_message == "Junior, is everything okay?":
-            await message.reply("I shall have my revenge.")
-        
+async def perform(message, action, user_message):
+    unless = action.get("unless_contains")
+    if unless and unless.lower() in user_message.lower():
+        return
+    content = user_message if action.get("echo") else action.get("text")
+    file = None
+    if action.get("file"):
+        path = resolve_file(action["file"])
+        if path is None:
+            print(f"Missing file {action['file']}")
+        else:
+            file = discord.File(path)
+    if not content and file is None:
+        return
+    kwargs = {"content": content}
+    if file:
+        kwargs["file"] = file
+    if action.get("mode", "reply") == "send":
+        await message.channel.send(**kwargs)
+    else:
+        await message.reply(**kwargs)
 
-    except Exception as e:
-        print(e)
-
-async def send_message(message, user_message):
-    try:
-            responded = False
-            #League
-            if responses.league_response(user_message):
-                print("League mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/rule11-no-league-of-legends-bruv-rules-gif-23677770")
-
-            #Val
-            if responses.val_response(user_message):
-                print("Val mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/rule18-gif-23154950")
-
-            #one piece
-            if responses.one_piece_response(user_message):
-                print("One piece mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/rule154-no-one-piece-gif-23700813")
-
-            #LowTierGod
-            if responses.kys_response(user_message):
-                responded = True
-                await message.channel.send("https://tenor.com/view/ltg-low-tier-god-yskysn-ltg-thunder-thunder-gif-23523876")
-
-            #JJK
-            if responses.jjk_response(user_message):
-                print("jjk mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/rule137-no-jujutsu-kaisen-gif-23697731")
-
-            if responses.venom_response(user_message):
-                print("venom mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/venom-venom-marvel-venom-funny-venom-the-last-dance-venom-hot-ones-gif-1749787248943684479")
-
-            #toxivejr
-            if responses.toxjr_response(user_message):
-                responded = True
-                if random()>.2:
-                    await message.reply("Ready to comply.", file=discord.File('toxivejunior.png'))
-                else:
-                    await message.reply("",file=discord.File('juniorlantern.jpeg'))
-
-            if responses.honkai_response(user_message):
-                print("honkai mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/honkai-gif-14136885181316463224")
-
-            #fort
-            if responses.fortnite_respons(user_message):
-                print("fort mentioned")
-                responded = True
-                await message.reply("https://tenor.com/view/goku-party-party-gif-18335541801151517525")
-
-            #Rivals
-            if responses.rivals_response(user_message):
-                print("rivals mentioned")
-                responded = True
-                if str(message.author) == "girlsonly":
-                    await message.reply("https://tenor.com/view/jeff-yeet-hulk-marvel-rivals-trowing-jeff-gif-6542491211829134642")
-                else: 
-                    await message.reply("https://tenor.com/view/jeff-the-shark-marvel-rivals-kill-jeff-the-shark-yowd-gif-7825075933685935821")
-
-
-            #joever
-            if responses.joever_response(user_message):
-                print("Joever mentioned")
-                responded = True
-                await message.reply(file=discord.File('itsjoever.jpeg'))
-
-            if responses.bankai_response(user_message):
-                print("bankai mentioned")
-                responded = True
-                await message.reply(file=discord.File('nobankai.gif'))
-                
-            if responses.bubblesort_response(user_message):
-                print("bubblesort mentioned")
-                responded = True
-                await message.channel.send(file=discord.File('bubblesortmybeloved.gif'))
-
-            #hi = hi
-            if (responses.hi_response(user_message) == 1) or (responses.hi_response(user_message) == 2):
-                print("hi mentioned")
-                responded = True
-                await message.channel.send(user_message)
-                        #I"M JUNIOR
-            # if responses.im_response(user_message):
-            #     print("Im mentioned")
-            #     responded = True
-            #     reply_string = "Hi " + " ".join(user_message.split()[1:]) + ", I'm Toxive Jr."
-            #     await message.reply(reply_string, file=discord.File('toxivejunior.png'))
-
-            
-
-
-
-            #Night is still young
-            now = datetime.now()
-            if now.hour<7 or now.hour>=19.5:
-                if responses.night_response(user_message):
-                    print("Night mentioned")
-                    if "the night is still young" not in user_message.lower():
-                        await message.reply("The night is still young...")
-                    await message.channel.send("https://cdn.discordapp.com/attachments/1216832432037298419/1230412824807997460/IMG_1386.gif?ex=66333a3d&is=6620c53d&hm=b56c5670ac3b3972712586ecd47dd409715b9e67d521041c6ed64c605daee954&")
-                    responded = True
-
-            return responded
-                    
-
-    except Exception as e:
-        print(e)
 
 def run_discord_bot():
     TOKEN = config.TOKEN
@@ -137,42 +52,177 @@ def run_discord_bot():
     intents.message_content = True
     client = discord.Client(intents=intents)
 
-    mute_set = set()
+    muted_until = {}  # username -> time the keyword mute ends
+    last_ai_reply = {}  # username -> time of last direct AI reply
+    last_unprompted = {}  # channel id -> time of last unprompted AI reply
+    unprompted = {"on": settings.AI_UNPROMPTED}
 
+    async def handle_command(message, raw):
+        command, _, rest = raw[1:].partition(" ")
+        command = command.lower()
+        rest = rest.strip()
+
+        if command == "addreply":
+            triggers, _, text = rest.partition("|")
+            triggers = [t.strip().lower() for t in triggers.split(",") if t.strip()]
+            text = text.strip() or None
+            file = None
+            if message.attachments:
+                attachment = message.attachments[0]
+                name = Path(attachment.filename).name
+                if Path(name).suffix.lower() not in MEDIA_TYPES:
+                    await message.reply("That attachment isn't an image or video.")
+                    return True
+                MEDIA_DIR.mkdir(exist_ok=True)
+                await attachment.save(MEDIA_DIR / name)
+                file = name
+            if not triggers or not (text or file):
+                await message.reply("Usage: `!addreply word, some phrase | reply text` (or attach an image)")
+                return True
+            entry = book.add(triggers, text, file)
+            await message.reply(f"Added **{entry['name']}**: {', '.join(triggers)}")
+        elif command == "delreply":
+            if book.remove(rest):
+                await message.reply(f"Removed **{rest}**")
+            else:
+                await message.reply(f"No reply named **{rest}**. Try `!replies`.")
+        elif command == "replies":
+            await message.reply(("Replies: " + ", ".join(book.names()))[:1900] + "\n" + HELP)
+        elif command == "reload":
+            book.reload()
+            await message.reply(f"Reloaded {len(book.entries)} replies")
+        elif command == "shutup":
+            unprompted["on"] = False
+            await message.reply("Fine. I'll only talk when spoken to.")
+        elif command == "talk":
+            unprompted["on"] = True
+            await message.reply("Ready to comply.")
+        else:
+            return False
+        return True
+
+    async def keyword_replies(message, user_message, username):
+        muted = time.time() < muted_until.get(username, 0)
+        responded = False
+        should_mute = False
+        for entry in book.matching(user_message, username, datetime.now()):
+            if muted and not entry.get("ignore_mute"):
+                continue
+            print(f"{entry.get('name')} triggered")
+            try:
+                for action in actions_for(entry):
+                    await perform(message, action, user_message)
+            except Exception as e:
+                print(e)
+            responded = True
+            should_mute = should_mute or entry.get("mute", True)
+
+        if muted and not responded:
+            print("User muted, message not processed")
+        if should_mute and username not in settings.MUTE_EXEMPT:
+            muted_until[username] = time.time() + settings.MUTE_SECONDS
+        if responded:
+            status.set_state("talking")
+        return responded
+
+    def ai_reason(message, user_message, username):
+        now = time.time()
+        ref = message.reference
+        if client.user in message.mentions:
+            reason = "mention"
+        elif ref and isinstance(ref.resolved, discord.Message) and ref.resolved.author == client.user:
+            reason = "reply"
+        elif settings.AI_REPLY_TO_NAME and "junior" in words_in(user_message):
+            reason = "name"
+        else:
+            if (
+                unprompted["on"]
+                and len(user_message.split()) >= settings.AI_MIN_WORDS
+                and now - last_unprompted.get(message.channel.id, 0) > settings.AI_CHANNEL_COOLDOWN
+                and now >= muted_until.get(username, 0)
+                and random() < settings.AI_RANDOM_CHANCE
+            ):
+                last_unprompted[message.channel.id] = now
+                return "random"
+            return None
+
+        if now - last_ai_reply.get(username, 0) < settings.AI_USER_COOLDOWN:
+            return None
+        last_ai_reply[username] = now
+        return reason
+
+    async def ai_reply(message, user_message, username):
+        if message.author.bot or not ai.available():
+            return
+        reason = ai_reason(message, user_message, username)
+        if reason is None:
+            return
+        print(f"AI reply ({reason})")
+
+        history = [m async for m in message.channel.history(limit=settings.AI_CONTEXT_MESSAGES, before=message)]
+        lines = []
+        for m in list(reversed(history)) + [message]:  # history comes newest first
+            if text := chatformat.message_text(m):
+                lines.append(chatformat.line(m.author.display_name, text))
+
+        status.set_state("thinking")
+        try:
+            async with message.channel.typing():
+                text, path = await asyncio.to_thread(ai.generate, lines)
+        except Exception as e:
+            print(f"AI error: {e}")
+            status.set_state("idle")
+            return
+        if not text and path is None:
+            status.set_state("idle")
+            return
+
+        kwargs = {"content": text or None}
+        if path:
+            kwargs["file"] = discord.File(path)
+        if reason == "random":
+            await message.channel.send(**kwargs)
+        else:
+            await message.reply(**kwargs)
+        status.set_state("talking")
+
+    def load_model():
+        try:
+            ai.load()
+        except Exception:
+            pass  # ai.load already printed why
 
     @client.event
     async def on_ready():
         print(f'{client.user} is now running.')
-
-    async def user_timeout(username):
-        mute_set.add(username)
-        print("Added username to mute")
-        await asyncio.sleep(60)
-        mute_set.remove(username)
-        print("Removed username from mute")
-
-
+        status.set_state("idle")
+        if ai.available():
+            asyncio.create_task(asyncio.to_thread(load_model))
+        else:
+            print(f"No model at {ai.MODEL_PATH}, AI replies are off")
 
     @client.event
     async def on_message(message):
         if message.author == client.user:
-                return
+            return
+        book.reload_if_changed()
 
         username = str(message.author)
+        raw = str(message.content)
+        if username == settings.OWNER and raw.startswith("!"):
+            try:
+                if await handle_command(message, raw):
+                    return
+            except Exception as e:
+                print(e)
+                await message.reply(f"That didn't work: {e}")
+                return
 
-        user_message = str(message.content).strip("!")
+        user_message = raw.strip("!")
         channel = str(message.channel)
         print(f"{username} said: '{user_message}' ({channel})")
-        if (username not in mute_set):
-            if (await send_message(message, user_message)):
-                if (username != "toxive"):
-                    await user_timeout(username)
-        else:
-            print("User muted, message not processed")
-        #await message.channel.send("i really fw your energy")
-        if username == "toxive":
-            await send_special_message(message, user_message)
-        # if username == "vivianmeat1":
-        #     await message.channel.send("Shutup Vivian")
+
+        if not await keyword_replies(message, user_message, username):
+            await ai_reply(message, user_message, username)
 
     client.run(TOKEN)

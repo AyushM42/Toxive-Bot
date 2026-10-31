@@ -1,0 +1,16 @@
+[Unit]
+Description=Toxive Jr squirrel display
+After=local-fs.target
+
+[Service]
+User=__USER__
+SupplementaryGroups=video
+WorkingDirectory=__DIR__
+ExecStart=__DIR__/.venv/bin/python display/squirrel.py
+Restart=always
+RestartSec=5
+# Keep the display smooth while the model is generating
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
