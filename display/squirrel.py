@@ -1,4 +1,4 @@
-"""Purple pixel-art squirrel for the MHS-3.5 screen (480x320).
+"""Purple pixel-art Toxive Jr (propeller beanie, lollipop) for the MHS-3.5 screen (480x320).
 
 On the Pi it draws straight to the LCD framebuffer, no desktop needed:
     python display/squirrel.py
@@ -9,8 +9,10 @@ It reads the bot's status file (settings.STATUS_FILE) to show when Toxive Jr is 
 """
 import argparse
 import math
+import random
 import sys
 import time
+from functools import lru_cache
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -21,93 +23,37 @@ sys.path.insert(0, str(BASE_DIR))
 import settings  # noqa: E402
 
 SCREEN = (480, 320)
-SCALE = 5
-W, H = SCREEN[0] // SCALE, SCREEN[1] // SCALE  # 96x64 low-res canvas
+SCALE = 4
+W, H = SCREEN[0] // SCALE, SCREEN[1] // SCALE  # 120x80 low-res canvas
 FPS = 8
 
-COLORS = {
-    "K": (30, 11, 51),  # outline
-    "D": (91, 42, 142),  # shadow
-    "P": (139, 69, 209),  # purple
-    "M": (178, 120, 232),  # highlight
-    "L": (222, 190, 247),  # belly
-    "E": (18, 0, 24),  # eye
-    "W": (255, 255, 255),
-    "N": (255, 122, 184),  # nose
-    "B": (232, 140, 214),  # blush
-    "A": (150, 96, 45),  # acorn
-    "a": (196, 140, 80),
-    "C": (92, 58, 28),  # acorn cap
-}
+OUTLINE = (34, 10, 48)
+FUR_DARK = (88, 30, 128)
+FUR = (128, 52, 186)
+FUR_LIGHT = (166, 96, 220)
+FUR_MID = (146, 72, 204)
+FUR_SHADE = (116, 54, 178)
+CHEEK = (214, 176, 236)
+EYE = (16, 6, 20)
+WHITE = (255, 255, 255)
+NOSE = (224, 150, 176)
+HAT_RED = (222, 38, 52)
+HAT_RED_DARK = (160, 20, 36)
+HAT_CREAM = (250, 244, 206)
+PROPELLER = (214, 222, 92)
+STICK = (232, 210, 170)
+CANDY = [(236, 64, 72), (248, 156, 48), (250, 222, 70), (84, 186, 92), (64, 140, 230), (160, 90, 210)]
+
 SKY_TOP = (14, 10, 40)
 SKY_BOTTOM = (48, 22, 84)
 GROUND = (36, 74, 52)
 GROUND_DARK = (24, 50, 36)
 TEXT = (222, 190, 247)
 
-TAIL = """
-........KKKKKK..........
-......KKPPPPPPKK........
-.....KPPMMMPPPPPK.......
-....KPPMMPPPPPPPPK......
-...KPPMPPPPKKKPPPPK.....
-...KPPMPPPK...KPPPK.....
-..KPPMPPPK.....KPPK.....
-..KPPMPPPK......KK......
-..KPPMPPPPK.............
-..KPPMMPPPK.............
-..KPPPMPPPPK............
-...KPPMMPPPPK...........
-...KPPPMMPPPPK..........
-....KPPPMMPPPPK.........
-....KDPPPMMPPPPK........
-.....KDPPPPMPPPPK.......
-.....KDDPPPPMPPPPK......
-......KDDPPPPPPPPPK.....
-......KDDDPPPPPPPPPK....
-.......KDDDPPPPPPPPPK...
-........KDDDPPPPPPPPK...
-.........KDDDDPPPPPPK...
-..........KKDDDDDPPPK...
-............KKKDDDDK....
-"""
-
-BODY = """
-..........................KK............
-.........................KMPK...........
-.........................KMLPK..........
-........................KPMLPK..........
-........................KPPPPKKK........
-.......................KPPPPPPPPKK......
-......................KPPPPPPPPPPPK.....
-......................KPPPPPPPPPPPPK....
-.....................KPPPPPPPPPEEPPPK...
-.....................KPPPPPPPPEWEPPPK...
-.....................KPPPPPPPPEEEPPPPK..
-.....................KPPPPPBBPPPPPPPPNK.
-.....................KDPPPPPPPPPPLLLKK..
-......................KDPPPPPPPLLLLLK...
-.......................KKDPPPPLLLLKK....
-......................KPPPPPPLLLLLK.....
-.....................KPPPPPPLLLLLLLK....
-....................KPPPPPPLLLLKCCCK....
-...................KPPPPPPLLLLKCCCCCK...
-...................KPPPPPPLLLKMKAAAAK...
-..................KPPPPPPPLLLKMKAaAAK...
-..................KPPPPPPPLLLLKKAAAK....
-..................KPPPPPPPLLLLLLKAK.....
-..................KDPPPPPPLLLLLLLK......
-..................KDPPPPPPPLLLLLLK......
-..................KDDPPPPPPLLLLLLK......
-..................KDDPPPPPPPLLLLLK......
-...................KDDPPPPPPPLLLLK......
-...................KDDDPPPPPPPPPPK......
-....................KDDDPPPPPPPPK.......
-....................KKDDDPPPPPPKK.......
-...................KPPKKKKKKKKPPK.......
-..................KPPPPPK..KPPPPPK......
-..................KKKKKKK..KKKKKKK......
-"""
+SPRITE = (60, 58)
+SPRITE_FULL = (84, 72)  # room for the tail plume above and behind
+BODY_Y = 10  # body layers sit this far down in the full sprite
+FEET_Y = BODY_Y + 57  # bottom row of the feet; nothing goes lower
 
 # 3x5 pixel font
 FONT = {
@@ -121,28 +67,231 @@ FONT = {
     "?": "110001010000010", " ": "000000000000000", "'": "010010000000000",
 }
 
-STARS = [(5, 4), (17, 13), (40, 3), (55, 9), (63, 2), (79, 14), (88, 6), (70, 22), (9, 26), (92, 30)]
+STARS = [(6, 5), (21, 16), (44, 4), (60, 11), (76, 3), (98, 17), (110, 7), (88, 28), (11, 33), (114, 38), (33, 26)]
 
 
-def parse(art):
-    return [row for row in art.strip("\n").split("\n")]
+# --- sprite building -------------------------------------------------------------
+
+def mask(draw_fn, size=SPRITE):
+    m = Image.new("1", size, 0)
+    draw_fn(ImageDraw.Draw(m))
+    return m
 
 
-TAIL_ROWS = parse(TAIL)
-BODY_ROWS = parse(BODY)
-BLINK_ROWS = [
-    row.replace("W", "K").replace("E", "K") if "W" in row else row.replace("E", "P")
-    for row in BODY_ROWS
+def fur(m, light_from=(-1, -1)):
+    """Fill a mask with purple fur: highlight on the lit edge, shadow on the far edge."""
+    img = Image.new("RGBA", m.size, (0, 0, 0, 0))
+    mp, px = m.load(), img.load()
+    w, h = m.size
+    inside = lambda x, y: 0 <= x < w and 0 <= y < h and mp[x, y]
+    lx, ly = light_from
+    for y in range(h):
+        for x in range(w):
+            if not mp[x, y]:
+                continue
+            if not inside(x + lx, y) or not inside(x, y + ly):
+                px[x, y] = FUR_LIGHT
+            elif not inside(x - lx, y) or not inside(x, y - ly) or not inside(x - lx, y - ly + 1):
+                px[x, y] = FUR_DARK
+            else:
+                px[x, y] = FUR
+    return img
+
+
+def fur_texture(img, m, rng, count, direction):
+    """Sprinkle short fur strands inside a mask, running along direction(x, y) -> (dx, dy).
+
+    Strands near the lit top/left edge are light, near the far edge shaded, and mostly subtle
+    elsewhere, so the fill looks soft rather than speckled. Edge pixels are left alone.
+    """
+    mp, px = m.load(), img.load()
+    w, h = m.size
+    inside = lambda x, y: 0 <= x < w and 0 <= y < h and mp[x, y]
+    interior = {(x, y) for y in range(h) for x in range(w)
+                if all(inside(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1))}
+    starts = sorted(interior)
+    for _ in range(count):
+        x, y = rng.choice(starts)
+        dx, dy = direction(x, y)
+        if not inside(x - 3, y) or not inside(x, y - 3):
+            color = FUR_LIGHT
+        elif not inside(x + 3, y) or not inside(x, y + 3):
+            color = FUR_SHADE
+        else:
+            color = FUR_MID if rng.random() < 0.6 else FUR_SHADE
+        for k in range(rng.randint(2, 4)):
+            q = (round(x + dx * k), round(y + dy * k))
+            if q in interior:
+                px[q] = color + (255,)
+
+
+def outline(img, color=OUTLINE):
+    """Dark outline around every opaque pixel."""
+    out = img.copy()
+    src, px = img.load(), out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            if src[x, y][3]:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                if 0 <= x + dx < w and 0 <= y + dy < h and src[x + dx, y + dy][3]:
+                    px[x, y] = color + (255,)
+                    break
+    return out
+
+
+def layer(fn):
+    img = Image.new("RGBA", SPRITE, (0, 0, 0, 0))
+    fn(ImageDraw.Draw(img), img.load())
+    return img
+
+
+# Tail spine like a real squirrel's: up behind the back, then a big plume that flops over
+# backwards, away from the head. (x, y, thickness radius)
+TAIL_SPINE = [
+    (30, 60, 6.5), (38, 57, 9.5), (44, 52, 11), (46, 43, 10.5), (46, 35, 10.5), (46, 28, 11.5),
+    (49, 22, 13), (56, 18, 13.5), (63, 20, 12), (67, 26, 9), (68, 32, 5.5),
 ]
+TAIL_OUTLINE = (62, 22, 92)  # softer than the body outline so the fur edge looks fuzzy
 
 
-def blit(img, rows, x0, y0):
-    px = img.load()
-    for y, row in enumerate(rows):
-        for x, ch in enumerate(row):
-            if ch in COLORS and 0 <= x0 + x < W and 0 <= y0 + y < H:
-                px[x0 + x, y0 + y] = COLORS[ch]
+def tail_points():
+    """(x, y, radius, tangent x, tangent y) every half pixel along the spine."""
+    points = []
+    for (x0, y0, r0), (x1, y1, r1) in zip(TAIL_SPINE, TAIL_SPINE[1:]):
+        length = math.dist((x0, y0), (x1, y1))
+        tx, ty = (x1 - x0) / length, (y1 - y0) / length
+        steps = int(length * 2)
+        points += [(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps, r0 + (r1 - r0) * i / steps, tx, ty) for i in range(steps)]
+    return points
 
+
+@lru_cache(maxsize=1)
+def tail_layer():
+    rng = random.Random(7)  # fixed seed: same fur every frame
+    points = tail_points()
+
+    def shape(d):
+        for x, y, r, _, _ in points:
+            d.ellipse([x - r, y - r, x + r, y + r], fill=1)
+        # short uneven wisps all round the edge, swept towards the tip
+        for x, y, r, tx, ty in points[::2]:
+            for side in (1, -1):
+                if rng.random() < 0.45:
+                    continue
+                nx, ny = -ty * side, tx * side
+                length = rng.uniform(1, 3) * min(1, r / 8)
+                bx, by = x + nx * (r - 1), y + ny * (r - 1)
+                d.polygon([
+                    (bx - tx * 1.3, by - ty * 1.3),
+                    (bx + tx * 1.3, by + ty * 1.3),
+                    (bx + nx * length + tx * length, by + ny * length + ty * length),
+                ], fill=1)
+
+    m = mask(shape, SPRITE_FULL)
+    ImageDraw.Draw(m).rectangle([0, FEET_Y + 1, SPRITE_FULL[0], SPRITE_FULL[1]], fill=0)  # rest on the ground
+    img = fur(m)
+
+    def along_tail(x, y):
+        _, _, _, tx, ty = min(points, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
+        return tx, ty
+
+    fur_texture(img, m, rng, 70, along_tail)
+    return outline(img, TAIL_OUTLINE)
+
+
+def body_layer(blink):
+    def shape(d):
+        d.ellipse([12, 26, 40, 56], fill=1)  # haunch
+        d.ellipse([7, 20, 26, 46], fill=1)  # chest
+        d.ellipse([2, 13, 21, 31], fill=1)  # head
+        d.polygon([(4, 20), (0, 25), (2, 28), (8, 29)], fill=1)  # snout
+        d.polygon([(16, 13), (20, 8), (22, 16)], fill=1)  # ear
+        d.ellipse([5, 51, 21, 57], fill=1)  # foot
+    m = mask(shape)
+    img = fur(m)
+
+    def body_fur(x, y):
+        return (0.94, 0.33) if x < 22 and y < 30 else (0.37, 0.93)  # head fur runs back, body fur down
+
+    fur_texture(img, m, random.Random(11), 40, body_fur)
+    d = ImageDraw.Draw(img)
+    d.ellipse([3, 24, 12, 33], fill=CHEEK)  # cheek / throat
+    d.ellipse([7, 30, 14, 40], fill=CHEEK)
+    d.arc([18, 32, 40, 58], 180, 270, fill=FUR_DARK)  # thigh
+    d.point([(1, 25), (2, 25), (1, 26)], fill=NOSE)
+    d.point([(5, 55), (7, 56), (9, 56)], fill=CHEEK)  # toes
+    if blink:
+        d.line([(7, 21), (10, 21)], fill=EYE)
+    else:
+        d.rectangle([7, 20, 9, 22], fill=EYE)
+        d.point((7, 20), fill=WHITE)
+    return outline(img)
+
+
+def paw_layer():
+    def draw(d, px):
+        d.line([(9, 37), (17, 49)], fill=STICK)  # lollipop stick
+        d.ellipse([9, 37, 14, 42], fill=FUR)  # paw
+        d.point([(10, 38), (11, 38)], fill=FUR_LIGHT)
+    return outline(layer(draw))
+
+
+def lollipop_layer():
+    def draw(d, px):
+        cx, cy, r = 5.5, 35.5, 5.5
+        for y in range(int(cy - r), int(cy + r) + 1):
+            for x in range(int(cx - r), int(cx + r) + 1):
+                dx, dy = x + 0.5 - cx, y + 0.5 - cy
+                dist = math.hypot(dx, dy)
+                if dist <= r:
+                    swirl = (math.atan2(dy, dx) / (2 * math.pi) + dist / 3.2) * len(CANDY)
+                    px[x, y] = CANDY[int(swirl) % len(CANDY)] + (255,)
+        px[4, 33] = WHITE + (255,)
+    return outline(layer(draw))
+
+
+def hat_layer(phase):
+    def draw(d, px):
+        # dome: red / cream / red panels, cut off at the rim
+        dome = mask(lambda m: m.ellipse([1, 7, 21, 27], fill=1))
+        dm = dome.load()
+        for y in range(7, 17):
+            for x in range(1, 22):
+                if dm[x, y]:
+                    if x < 6:
+                        color = HAT_RED
+                    elif x < 15:
+                        color = HAT_CREAM
+                    else:
+                        color = HAT_RED_DARK if y > 13 or x > 18 else HAT_RED
+                    px[x, y] = color + (255,)
+        d.line([(1, 16), (21, 16)], fill=HAT_RED_DARK)  # rim
+        d.line([(5, 9), (4, 15)], fill=OUTLINE)  # panel seams
+        d.line([(15, 9), (16, 15)], fill=OUTLINE)
+        d.rectangle([10, 5, 12, 6], fill=HAT_RED)  # button + stem
+        d.point((11, 4), fill=HAT_RED_DARK)
+        # propeller blades, squashed sideways as they spin: full / half / edge-on / half
+        span = (9, 5, 1, 5)[phase % 4]
+        if span > 1:
+            d.polygon([(11, 3), (11 - span, 1), (11 - span, 3)], fill=PROPELLER)
+            d.polygon([(11, 3), (11 + span, 3), (11 + span, 5)], fill=PROPELLER)
+        else:
+            d.rectangle([10, 1, 12, 4], fill=PROPELLER)
+    return outline(layer(draw))
+
+
+@lru_cache(maxsize=None)
+def sprite(tail_dx, tail_dy, blink, phase):
+    img = Image.new("RGBA", SPRITE_FULL, (0, 0, 0, 0))
+    img.alpha_composite(tail_layer(), (tail_dx, tail_dy))
+    for part in (body_layer(blink), paw_layer(), lollipop_layer(), hat_layer(phase)):
+        img.alpha_composite(part, (0, BODY_Y))
+    return img
+
+
+# --- scene -----------------------------------------------------------------------
 
 def text(img, s, y, color=TEXT):
     s = s.upper()
@@ -157,19 +306,26 @@ def text(img, s, y, color=TEXT):
                     px[x, yy] = color
 
 
-def background(t):
+@lru_cache(maxsize=1)
+def sky():
     img = Image.new("RGB", (W, H))
     draw = ImageDraw.Draw(img)
     for y in range(H):
         f = y / H
         draw.line([(0, y), (W, y)], fill=tuple(int(a + (b - a) * f) for a, b in zip(SKY_TOP, SKY_BOTTOM)))
-    for i, (x, y) in enumerate(STARS):
-        if math.sin(t * 1.3 + i * 2.1) > -0.6:
-            img.putpixel((x, y), (255, 240, 200) if math.sin(t * 1.3 + i * 2.1) > 0.5 else (150, 130, 190))
-    draw.rectangle([0, 46, W, H], fill=GROUND)
-    draw.rectangle([0, 50, W, H], fill=GROUND_DARK)
+    draw.rectangle([0, 65, W, H], fill=GROUND)
+    draw.rectangle([0, 69, W, H], fill=GROUND_DARK)
     for x in range(0, W, 3):
-        img.putpixel((x, 45), GROUND)
+        img.putpixel((x, 64), GROUND)
+    return img
+
+
+def background(t):
+    img = sky().copy()
+    for i, (x, y) in enumerate(STARS):
+        s = math.sin(t * 1.3 + i * 2.1)
+        if s > -0.6:
+            img.putpixel((x, y), (255, 240, 200) if s > 0.5 else (150, 130, 190))
     return img
 
 
@@ -189,32 +345,34 @@ def read_state():
 
 def frame(t, state):
     img = background(t)
-    x, y = 26, 12
+    x, y = 22, -2
 
     sway = round(math.sin(t * (6 if state == "talking" else 1.6)))
     bob = -1 if state == "talking" and int(t * 4) % 2 else 0
     blink = state != "thinking" and 2.0 < (t % 4.0) < 2.18
+    spin = 3 if state == "thinking" else 1 if state == "talking" else 0.5  # propeller turns per second
+    phase = int(t * spin * 4) % 4 if spin else 0
 
-    blit(img, TAIL_ROWS, x + 1 + sway, y - 1 + bob + (1 if sway < 0 else 0))
-    blit(img, BLINK_ROWS if blink else BODY_ROWS, x, y + bob)
+    squirrel = sprite(sway + 1, 0, blink, phase)
+    img.paste(squirrel, (x, y + bob), squirrel)
 
     if state == "thinking":
         draw = ImageDraw.Draw(img)
-        draw.ellipse([60, 14, 62, 16], fill=COLORS["L"])
-        draw.ellipse([63, 9, 66, 12], fill=COLORS["L"])
-        draw.rounded_rectangle([67, 1, 91, 10], radius=3, fill=COLORS["L"], outline=COLORS["K"])
-        dots = int(t * 3) % 4
-        for i in range(dots):
-            img.putpixel((74 + i * 4, 6), COLORS["K"])
-            img.putpixel((75 + i * 4, 6), COLORS["K"])
+        draw.ellipse([17, 18, 19, 20], fill=CHEEK)
+        draw.ellipse([12, 12, 15, 15], fill=CHEEK)
+        draw.rounded_rectangle([1, 1, 22, 10], radius=3, fill=CHEEK, outline=OUTLINE)
+        for i in range(int(t * 3) % 4):
+            draw.rectangle([6 + i * 4, 5, 7 + i * 4, 6], fill=OUTLINE)
         caption = "thinking..."
     elif state == "talking":
         caption = "ready to comply."
     else:
         caption = "toxive jr"
-    text(img, caption, 55)
+    text(img, caption, 72)
     return img.resize(SCREEN, Image.NEAREST)
 
+
+# --- output ----------------------------------------------------------------------
 
 class Framebuffer:
     def __init__(self, device=None):

@@ -13,7 +13,9 @@ It will send a "ready to comply" when Junior is mentioned.
 
 It talks like Toxive (a small model fine-tuned on Toxive's messages) when @mentioned, replied to, or called "junior", and very occasionally on its own.
 
-A purple squirrel lives on the Pi's screen.
+A purple squirrel in a propeller hat lives on the Pi's screen:
+
+![Toxive Jr on the Pi screen](squirrel-preview.gif)
 
 # This has no practical use.
 
