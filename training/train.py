@@ -58,7 +58,7 @@ def main():
         num_train_epochs=args.epochs,
         learning_rate=args.lr,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
+        warmup_steps=0.03,  # a float under 1 is a fraction of total steps
         per_device_train_batch_size=args.batch,
         gradient_accumulation_steps=args.grad_accum,
         gradient_checkpointing=True,
