@@ -40,7 +40,7 @@ def main():
     f16 = merged / "model-f16.gguf"
 
     print("Merging adapter...")
-    model = AutoPeftModelForCausalLM.from_pretrained(args.adapter, torch_dtype=torch.bfloat16)
+    model = AutoPeftModelForCausalLM.from_pretrained(args.adapter, dtype=torch.bfloat16)
     model.merge_and_unload().save_pretrained(merged)
     AutoTokenizer.from_pretrained(args.adapter).save_pretrained(merged)
 

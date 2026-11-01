@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 User=__USER__
 WorkingDirectory=__DIR__
-ExecStart=__DIR__/.venv/bin/python main.py
+ExecStart="__DIR__/.venv/bin/python" main.py
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1

@@ -6,11 +6,13 @@ After=local-fs.target
 User=__USER__
 SupplementaryGroups=video
 WorkingDirectory=__DIR__
-ExecStart=__DIR__/.venv/bin/python display/squirrel.py
+# Hide the console cursor on the LCD (needs root, hence the +; - ignores failure)
+ExecStartPre=-+/bin/sh -c 'echo 0 > /sys/class/graphics/fbcon/cursor_blink'
+ExecStart="__DIR__/.venv/bin/python" display/squirrel.py
 Restart=always
 RestartSec=5
-# Keep the display smooth while the model is generating
-Nice=-5
+# Lower priority than the bot so the model gets the CPU first
+Nice=10
 
 [Install]
 WantedBy=multi-user.target

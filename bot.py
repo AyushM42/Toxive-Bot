@@ -1,6 +1,6 @@
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from random import random
 
@@ -11,7 +11,7 @@ import chatformat
 import config
 import settings
 import status
-from keywords import MEDIA_DIR, MEDIA_TYPES, ReplyBook, actions_for, resolve_file, words_in
+from keywords import MEDIA_DIR, ReplyBook, actions_for, is_media, resolve_file, words_in
 
 BASE_DIR = Path(__file__).resolve().parent
 book = ReplyBook(BASE_DIR / "replies.yaml")
@@ -50,12 +50,15 @@ def run_discord_bot():
     TOKEN = config.TOKEN
     intents = discord.Intents.default()
     intents.message_content = True
-    client = discord.Client(intents=intents)
+    # Never ping @everyone, @here or roles, even if a message or the AI tries to
+    mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
+    client = discord.Client(intents=intents, allowed_mentions=mentions)
 
     muted_until = {}  # username -> time the keyword mute ends
     last_ai_reply = {}  # username -> time of last direct AI reply
     last_unprompted = {}  # channel id -> time of last unprompted AI reply
     unprompted = {"on": settings.AI_UNPROMPTED}
+    ai_in_flight = {"n": 0}  # AI replies generating or waiting for the model
 
     async def handle_command(message, raw):
         command, _, rest = raw[1:].partition(" ")
@@ -69,10 +72,11 @@ def run_discord_bot():
             file = None
             if message.attachments:
                 attachment = message.attachments[0]
-                name = Path(attachment.filename).name
-                if Path(name).suffix.lower() not in MEDIA_TYPES:
+                if not is_media(attachment.filename):
                     await message.reply("That attachment isn't an image or video.")
                     return True
+                # Pasted images are all called image.png, so name it by the attachment id instead
+                name = f"{attachment.id}{Path(attachment.filename).suffix.lower()}"
                 MEDIA_DIR.mkdir(exist_ok=True)
                 await attachment.save(MEDIA_DIR / name)
                 file = name
@@ -87,7 +91,8 @@ def run_discord_bot():
             else:
                 await message.reply(f"No reply named **{rest}**. Try `!replies`.")
         elif command == "replies":
-            await message.reply(("Replies: " + ", ".join(book.names()))[:1900] + "\n" + HELP)
+            names = ("Replies: " + ", ".join(book.names()))[:2000 - len(HELP) - 1]
+            await message.reply(names + "\n" + HELP)
         elif command == "reload":
             book.reload()
             await message.reply(f"Reloaded {len(book.entries)} replies")
@@ -129,27 +134,20 @@ def run_discord_bot():
         now = time.time()
         ref = message.reference
         if client.user in message.mentions:
-            reason = "mention"
-        elif ref and isinstance(ref.resolved, discord.Message) and ref.resolved.author == client.user:
-            reason = "reply"
-        elif settings.AI_REPLY_TO_NAME and "junior" in words_in(user_message):
-            reason = "name"
-        else:
-            if (
-                unprompted["on"]
-                and len(user_message.split()) >= settings.AI_MIN_WORDS
-                and now - last_unprompted.get(message.channel.id, 0) > settings.AI_CHANNEL_COOLDOWN
-                and now >= muted_until.get(username, 0)
-                and random() < settings.AI_RANDOM_CHANCE
-            ):
-                last_unprompted[message.channel.id] = now
-                return "random"
-            return None
-
-        if now - last_ai_reply.get(username, 0) < settings.AI_USER_COOLDOWN:
-            return None
-        last_ai_reply[username] = now
-        return reason
+            return "mention"
+        if ref and isinstance(ref.resolved, discord.Message) and ref.resolved.author == client.user:
+            return "reply"
+        if settings.AI_REPLY_TO_NAME and "junior" in words_in(user_message):
+            return "name"
+        if (
+            unprompted["on"]
+            and len(user_message.split()) >= settings.AI_MIN_WORDS
+            and now - last_unprompted.get(message.channel.id, 0) > settings.AI_CHANNEL_COOLDOWN
+            and now >= muted_until.get(username, 0)
+            and random() < settings.AI_RANDOM_CHANCE
+        ):
+            return "random"
+        return None
 
     async def ai_reply(message, user_message, username):
         if message.author.bot or not ai.available():
@@ -157,34 +155,56 @@ def run_discord_bot():
         reason = ai_reason(message, user_message, username)
         if reason is None:
             return
+        now = time.time()
+        if reason == "random":
+            if ai_in_flight["n"]:
+                return  # unprompted replies only when the model is idle
+            last_unprompted[message.channel.id] = now
+        else:
+            if now - last_ai_reply.get(username, 0) < settings.AI_USER_COOLDOWN:
+                return
+            # "junior" mentions only when idle; @mentions/replies may queue one behind the current reply
+            if ai_in_flight["n"] >= (1 if reason == "name" else 2):
+                return
+            last_ai_reply[username] = now
         print(f"AI reply ({reason})")
 
-        history = [m async for m in message.channel.history(limit=settings.AI_CONTEXT_MESSAGES, before=message)]
-        lines = []
-        for m in list(reversed(history)) + [message]:  # history comes newest first
-            if text := chatformat.message_text(m):
-                lines.append(chatformat.line(m.author.display_name, text))
-
+        ai_in_flight["n"] += 1
         status.set_state("thinking")
+        sent = False
         try:
+            # Same context as training: the last few messages, nothing from before a long gap
+            since = message.created_at - timedelta(hours=settings.CONTEXT_GAP_HOURS)
+            history = [
+                m async for m in message.channel.history(
+                    limit=settings.CONTEXT_MESSAGES, before=message, after=since, oldest_first=False
+                )
+            ]
+            history.sort(key=lambda m: m.created_at)
+            lines = [
+                chatformat.line(m.author.display_name, text)
+                for m in history + [message]
+                if (text := chatformat.message_text(m))
+            ]
             async with message.channel.typing():
                 text, path = await asyncio.to_thread(ai.generate, lines)
+            if text or path:
+                kwargs = {"content": text or None}
+                if path:
+                    kwargs["file"] = discord.File(path)
+                if reason == "random":
+                    await message.channel.send(**kwargs)
+                else:
+                    await message.reply(**kwargs)
+                sent = True
         except Exception as e:
             print(f"AI error: {e}")
-            status.set_state("idle")
-            return
-        if not text and path is None:
-            status.set_state("idle")
-            return
-
-        kwargs = {"content": text or None}
-        if path:
-            kwargs["file"] = discord.File(path)
-        if reason == "random":
-            await message.channel.send(**kwargs)
-        else:
-            await message.reply(**kwargs)
-        status.set_state("talking")
+        finally:
+            ai_in_flight["n"] -= 1
+            if sent:
+                status.set_state("talking")
+            elif not ai_in_flight["n"]:
+                status.set_state("idle")
 
     def load_model():
         try:
@@ -208,7 +228,7 @@ def run_discord_bot():
         book.reload_if_changed()
 
         username = str(message.author)
-        raw = str(message.content)
+        raw = message.content
         if username == settings.OWNER and raw.startswith("!"):
             try:
                 if await handle_command(message, raw):
@@ -219,8 +239,6 @@ def run_discord_bot():
                 return
 
         user_message = raw.strip("!")
-        channel = str(message.channel)
-        print(f"{username} said: '{user_message}' ({channel})")
 
         if not await keyword_replies(message, user_message, username):
             await ai_reply(message, user_message, username)

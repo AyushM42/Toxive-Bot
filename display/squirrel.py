@@ -25,7 +25,8 @@ import settings  # noqa: E402
 SCREEN = (480, 320)
 SCALE = 4
 W, H = SCREEN[0] // SCALE, SCREEN[1] // SCALE  # 120x80 low-res canvas
-FPS = 8
+# Frames per second. Kept low so the model gets the CPU; lowest while it's thinking.
+FPS = {"idle": 4, "thinking": 2, "talking": 6}
 
 OUTLINE = (34, 10, 48)
 FUR_DARK = (88, 30, 128)
@@ -369,7 +370,7 @@ def frame(t, state):
     else:
         caption = "toxive jr"
     text(img, caption, 72)
-    return img.resize(SCREEN, Image.NEAREST)
+    return img  # low-res; scaled up when shown
 
 
 # --- output ----------------------------------------------------------------------
@@ -386,6 +387,11 @@ class Framebuffer:
         self.bpp = int((sysfs / "bits_per_pixel").read_text())
         stride = sysfs / "stride"
         self.stride = int(stride.read_text()) if stride.exists() else self.width * self.bpp // 8
+        # Work out once how the 120x80 canvas maps onto the screen
+        self.rotate = (W > H) != (self.width > self.height)
+        w, h = (H, W) if self.rotate else (W, H)
+        sx, sy = self.width // w, self.height // h
+        self.scale = sx if sx == sy and (w * sx, h * sy) == (self.width, self.height) else 0
         print(f"Using {self.device}: {self.width}x{self.height} {self.bpp}bpp")
         self.fb = open(self.device, "wb")
 
@@ -399,18 +405,23 @@ class Framebuffer:
         return f"/dev/{devices[-1].name}" if devices else "/dev/fb1"
 
     def show(self, img):
+        """Convert the low-res canvas to the screen's pixel format, then scale it up."""
         np = self.np
-        if (img.width > img.height) != (self.width > self.height):
-            img = img.rotate(90, expand=True)
-        if img.size != (self.width, self.height):
-            img = img.resize((self.width, self.height), Image.NEAREST)
+        if not self.scale:  # screen isn't an exact multiple of the canvas
+            target = (self.height, self.width) if self.rotate else (self.width, self.height)
+            img = img.resize(target, Image.NEAREST)
         a = np.asarray(img, dtype=np.uint16)
         if self.bpp == 16:
-            pixels = ((a[..., 0] >> 3) << 11) | ((a[..., 1] >> 2) << 5) | (a[..., 2] >> 3)
-            data = pixels.astype("<u2")
+            data = (((a[..., 0] >> 3) << 11) | ((a[..., 1] >> 2) << 5) | (a[..., 2] >> 3)).astype("<u2")
+        elif self.bpp == 24:
+            data = a[..., ::-1].astype(np.uint8)  # BGR
         else:
-            data = np.dstack([a[..., 2], a[..., 1], a[..., 0], np.full(a.shape[:2], 255, np.uint16)]).astype(np.uint8)
-        rows = data.reshape(self.height, -1).view(np.uint8)
+            data = np.dstack([a[..., ::-1], np.full(a.shape[:2], 255, np.uint16)]).astype(np.uint8)  # BGRA
+        if self.rotate:
+            data = np.rot90(data)
+        if self.scale > 1:
+            data = data.repeat(self.scale, axis=0).repeat(self.scale, axis=1)
+        rows = np.ascontiguousarray(data).reshape(self.height, -1).view(np.uint8)
         if rows.shape[1] < self.stride:
             rows = np.pad(rows, ((0, 0), (0, self.stride - rows.shape[1])))
         self.fb.seek(0)
@@ -419,30 +430,28 @@ class Framebuffer:
 
 
 def preview(path):
-    frames = []
+    frames, durations = [], []
     for state, seconds in (("idle", 4.5), ("thinking", 2.5), ("talking", 2)):
-        for i in range(int(seconds * FPS)):
-            frames.append(frame(i / FPS, state))
-    frames[0].save(path, save_all=True, append_images=frames[1:], duration=1000 // FPS, loop=0)
-    frames[0].save(Path(path).with_suffix(".png"))
+        fps = FPS[state]
+        for i in range(int(seconds * fps)):
+            frames.append(frame(i / fps, state).resize(SCREEN, Image.NEAREST))
+            durations.append(1000 // fps)
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=durations, loop=0)
     print(f"Wrote {path}")
 
 
 def run(device):
     fb = Framebuffer(device)
-    try:
-        Path("/sys/class/graphics/fbcon/cursor_blink").write_text("0")
-    except OSError:
-        pass
     last = None
     start = time.time()
     while True:
-        img = frame(time.time() - start, read_state())
-        data = img.tobytes()
+        state = read_state()
+        img = frame(time.time() - start, state)
+        data = img.tobytes()  # 120x80, cheap to compare
         if data != last:
             fb.show(img)
             last = data
-        time.sleep(1 / FPS)
+        time.sleep(1 / FPS[state])
 
 
 if __name__ == "__main__":

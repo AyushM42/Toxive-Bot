@@ -49,7 +49,7 @@ def main():
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_use_double_quant=True,
         ),
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         device_map={"": 0},
     )
 
@@ -89,7 +89,6 @@ def main():
     adapter_dir = Path(args.out) / "adapter"
     trainer.save_model(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
-    (adapter_dir / "base_model.txt").write_text(args.base)
     print(f"Saved adapter to {adapter_dir}")
 
 

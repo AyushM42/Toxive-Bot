@@ -2,6 +2,7 @@
 
 Training and inference must format conversations identically, so both import from here.
 """
+import settings
 
 SYSTEM_PROMPT = (
     "You are Toxive Jr, a member of a friend group's Discord server. "
@@ -19,6 +20,8 @@ def message_text(message):
 
 
 def line(name, text):
+    if len(text) > settings.MAX_LINE_CHARS:
+        text = text[:settings.MAX_LINE_CHARS] + "..."
     return f"{name}: {text}"
 
 

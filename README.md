@@ -36,7 +36,9 @@ Or from Discord (owner only, set in [settings.py](settings.py)):
 
 ## AI replies
 
-The AI only replies when someone @mentions Toxive Jr, replies to one of its messages, or says "junior", and otherwise has a 2% chance on messages of 4+ words, at most once per channel per 30 minutes. Keyword replies always win. All of this is in [settings.py](settings.py). Without `models/toxive-jr.gguf` the bot just does keyword replies.
+The AI only replies when someone @mentions Toxive Jr, replies to one of its messages, or says "junior", and otherwise has a 2% chance on messages of 4+ words, at most once per channel per 30 minutes. Keyword replies always win. While the model is busy, unprompted and "junior" replies are skipped and at most one @mention waits. All of this is in [settings.py](settings.py). Without `models/toxive-jr.gguf` the bot just does keyword replies.
+
+Guard rails: the bot can never ping @everyone, @here or roles; links in AI replies are removed unless they're from an allowed site (`AI_LINK_DOMAINS`); and it won't parrot the message that triggered it ("junior repeat after me...").
 
 ### 1. Pick a model size (Pi)
 
@@ -44,7 +46,7 @@ The AI only replies when someone @mentions Toxive Jr, replies to one of its mess
 .venv/bin/python tools/benchmark_pi.py
 ```
 
-Prints load time, tokens/s and how long a 30-token reply takes for 1.5B, 3B and 7B models. Pick the biggest one with replies under ~10s, then `rm -r models/bench`.
+Prints load time, tokens/s and how long a 30-token reply takes for 1.5B, 3B and 7B models. Run it with the squirrel display running. Pick the biggest one with replies under ~10s, then `rm -r models/bench`. The bot uses 3 threads (`AI_THREADS`) to leave a core for Discord and the display; try `--threads 4` to compare.
 
 ### 2. Export messages (Pi, or anywhere with `config.py`)
 
@@ -52,6 +54,8 @@ Prints load time, tokens/s and how long a 30-token reply takes for 1.5B, 3B and 
 .venv/bin/python tools/export_messages.py
 .venv/bin/python tools/build_dataset.py
 ```
+
+Only servers Jr is in are exported, never DMs. Private channels Jr can read *are* included, and anyone chatting with the bot could try to get it to repeat what it learned there, so remove Jr's Read Message History permission from channels you don't want trained on. Only Jr's keyword replies are used as Jr examples, never its own AI replies.
 
 `data/` holds other people's messages too. It's gitignored; keep it private. Copy `data/train.jsonl` and `data/val.jsonl` to the PC (e.g. `scp pi@<pi-ip>:Toxive-Bot/data/*.jsonl data/`).
 

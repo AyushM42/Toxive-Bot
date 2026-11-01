@@ -1,4 +1,6 @@
-"""Download message history from every channel Toxive Jr can read into data/messages.jsonl.
+"""Download message history from every server channel Toxive Jr can read into data/messages.jsonl.
+
+Only servers the bot is in are exported. DMs are never read, so they never end up in training data.
 
 Run from the bot folder (it uses the token in config.py):
     python tools/export_messages.py
@@ -25,14 +27,15 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=str(BASE_DIR / "data" / "messages.jsonl"))
     p.add_argument("--after", help="only messages after this date, e.g. 2023-01-01")
-    p.add_argument("--limit", type=int, default=None, help="max messages per channel (default: all)")
+    p.add_argument("--limit", type=int, default=None, help="newest N messages per channel (default: all)")
     p.add_argument("--guild", help="only this server (name or id)")
     return p.parse_args()
 
 
 async def export_channel(channel, me, out, args, after):
     count = 0
-    async for m in channel.history(limit=args.limit, after=after, oldest_first=True):
+    # Newest first, so --limit keeps recent messages; build_dataset.py sorts by time anyway
+    async for m in channel.history(limit=args.limit, after=after, oldest_first=False):
         text = chatformat.message_text(m)
         if not text:
             continue
@@ -63,15 +66,32 @@ def main():
     intents.message_content = True
     client = discord.Client(intents=intents)
 
+    started = False
+
+    async def threads(guild):
+        """Active and archived threads (including forum posts) in a server."""
+        found = {t.id: t for t in guild.threads}
+        for parent in list(guild.text_channels) + list(guild.forums):
+            try:
+                async for t in parent.archived_threads(limit=None):
+                    found[t.id] = t
+            except discord.Forbidden:
+                pass
+        return list(found.values())
+
     @client.event
     async def on_ready():
+        nonlocal started
+        if started:  # on_ready fires again after a reconnect; don't restart the export
+            return
+        started = True
         total = 0
         try:
             with open(out_path, "w", encoding="utf-8") as out:
                 for guild in client.guilds:
                     if args.guild and args.guild not in (guild.name, str(guild.id)):
                         continue
-                    channels = list(guild.text_channels) + list(guild.threads)
+                    channels = list(guild.text_channels) + await threads(guild)
                     for channel in channels:
                         perms = channel.permissions_for(guild.me)
                         if not (perms.read_messages and perms.read_message_history):

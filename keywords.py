@@ -1,3 +1,4 @@
+import os
 import random
 import re
 import string
@@ -21,10 +22,14 @@ def words_in(text):
 MEDIA_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov"}
 
 
+def is_media(name):
+    return Path(str(name)).suffix.lower() in MEDIA_TYPES
+
+
 def resolve_file(name):
     """Path to a media file in the bot folder or media/. Only plain media file names are allowed."""
     name = Path(str(name)).name
-    if Path(name).suffix.lower() not in MEDIA_TYPES:
+    if not is_media(name):
         return None
     for folder in (BASE_DIR, MEDIA_DIR):
         path = folder / name
@@ -40,7 +45,11 @@ class ReplyBook:
         self.path = Path(path)
         self.entries = []
         self._mtime = None
-        self.reload()
+        try:
+            self.reload()
+        except Exception as e:
+            # A typo in replies.yaml shouldn't stop the bot; it reloads once the file is fixed
+            print(f"Could not load {self.path.name}, starting with no keyword replies: {e}")
 
     def reload(self):
         self._mtime = self.path.stat().st_mtime
@@ -57,8 +66,11 @@ class ReplyBook:
             print(f"Could not reload {self.path.name}, keeping the old replies: {e}")
 
     def save(self):
-        with open(self.path, "w", encoding="utf-8", newline="\n") as f:
+        # Write a temp file then swap it in, so a crash mid-write can't leave a half-written file
+        tmp = self.path.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             _yaml.dump(self.entries, f)
+        os.replace(tmp, self.path)
         self._mtime = self.path.stat().st_mtime
 
     def names(self):
@@ -91,7 +103,11 @@ class ReplyBook:
 
     def matching(self, text, username, now):
         """Entries that fire for this message, in file order."""
-        return [e for e in self.entries if _matches(e, text, username, now) and random.random() < e.get("chance", 1)]
+        words, lowered = words_in(text), text.lower()
+        return [
+            e for e in self.entries
+            if _matches(e, text, words, lowered, username, now) and random.random() < e.get("chance", 1)
+        ]
 
 
 def _flow(items):
@@ -100,7 +116,7 @@ def _flow(items):
     return seq
 
 
-def _matches(entry, text, username, now):
+def _matches(entry, text, words, lowered, username, now):
     if "only_users" in entry and username not in entry["only_users"]:
         return False
     if username in entry.get("except_users", []):
@@ -116,10 +132,8 @@ def _matches(entry, text, username, now):
 
     if text in entry.get("exact", []):
         return True
-    lowered = text.lower()
     if any(str(p).lower() in lowered for p in entry.get("contains", [])):
         return True
-    words = words_in(text)
     if any(str(w).lower() in words for w in entry.get("words", [])):
         return True
     if "regex" in entry and re.search(entry["regex"], text, re.IGNORECASE):

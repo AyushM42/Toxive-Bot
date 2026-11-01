@@ -1,7 +1,8 @@
-"""Runs the fine-tuned model with llama.cpp. Every function here blocks, so call them from a thread."""
+"""Runs the fine-tuned model with llama.cpp. Every function here except busy() blocks, so call them from a thread."""
 import re
 import threading
 from pathlib import Path
+from urllib.parse import urlparse
 
 import chatformat
 import settings
@@ -17,6 +18,10 @@ _failed = False
 
 def available():
     return settings.AI_ENABLED and not _failed and MODEL_PATH.is_file()
+
+
+def busy():
+    return _lock.locked()
 
 
 def load():
@@ -42,9 +47,10 @@ def load():
 
 
 def generate(lines):
-    """Returns (text, file_path or None)."""
+    """Returns (text, file_path or None). Either may be empty if the reply was unusable."""
     load()
     with _lock:
+        lines = _fit(lines)
         out = _llm.create_chat_completion(
             messages=chatformat.build_prompt(lines),
             max_tokens=settings.AI_MAX_TOKENS,
@@ -52,17 +58,45 @@ def generate(lines):
             top_p=0.9,
             repeat_penalty=1.1,
         )
-    return _clean(out["choices"][0]["message"]["content"])
+    return _clean(out["choices"][0]["message"]["content"], lines)
 
 
-def _clean(text):
-    text = text.strip()
-    # The model sometimes writes "Name: message" like the transcript
-    text = re.sub(r"^[^\n:]{1,32}:\s+", "", text, count=1)
-    text = text.split("\n")[0].strip()
+def _fit(lines):
+    """Drop the oldest messages until the prompt fits the token budget."""
+    lines = list(lines)
+
+    def tokens():
+        text = chatformat.SYSTEM_PROMPT + "\n" + "\n".join(lines)
+        return len(_llm.tokenize(text.encode(), add_bos=False))
+
+    while len(lines) > 1 and tokens() > settings.AI_PROMPT_TOKENS:
+        lines.pop(0)
+    return lines
+
+
+def _allowed_link(match):
+    host = (urlparse(match.group(0)).hostname or "").lower()
+    ok = any(host == d or host.endswith("." + d) for d in settings.AI_LINK_DOMAINS)
+    return match.group(0) if ok else ""
+
+
+def _clean(text, lines):
+    text = text.strip().split("\n")[0].strip()
+    # The model sometimes starts with "Name: " like the transcript; only strip real speaker names
+    speakers = {l.split(": ", 1)[0] for l in lines} | {"Toxive Jr"}
+    name, sep, rest = text.partition(": ")
+    if sep and name in speakers:
+        text = rest.strip()
 
     file = None
     for name in re.findall(r"\[img:([^\]]+)\]", text):
         file = file or resolve_file(name)
-    text = re.sub(r"\[(img|sticker):[^\]]+\]", "", text).strip()
+    text = re.sub(r"\[(img|sticker):[^\]]+\]", "", text)
+    text = re.sub(r"https?://\S+", _allowed_link, text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # Don't parrot the message that triggered the reply ("junior repeat after me: ...")
+    last = lines[-1].split(": ", 1)[-1].lower() if lines else ""
+    if len(text) > 10 and text.lower() in last:
+        text = ""
     return text[:2000], file
