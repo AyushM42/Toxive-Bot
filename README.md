@@ -95,11 +95,19 @@ Stop however the bot was started before (screen/tmux/cron) so it doesn't run twi
 
 ### MHS-3.5 screen
 
-A white screen means the backlight is on but no driver is loaded. Don't use the `LCD-show` scripts (they break Pi 5 / Bookworm). Instead add to `/boot/firmware/config.txt`:
+A white screen means the backlight is on but no driver is loaded. Don't use the `LCD-show` scripts (they break on the Pi 5 and current Raspberry Pi OS). Current kernels no longer ship an `mhs35` overlay, but the `piscreen` overlay drives the same ILI9486 chip with the newer DRM driver. Add under `[all]` in `/boot/firmware/config.txt`:
 
 ```
 dtparam=spi=on
-dtoverlay=mhs35:rotate=90,speed=32000000
+dtoverlay=piscreen,drm,speed=24000000,rotate=270
 ```
 
-Reboot, then `ls /dev/fb*` and `cat /sys/class/graphics/fb*/name` should show an `ili9486` device. If the image is upside down use `rotate=270`. Preview the art on any computer with `python display/squirrel.py --preview squirrel.gif`.
+The desktop would grab the LCD and draw over the squirrel, so boot to the console instead (SSH still works; `graphical.target` brings the desktop back):
+
+```bash
+sudo systemctl set-default multi-user.target
+sudo systemctl disable getty@tty1   # optional: no text login drawn on the LCD
+sudo reboot
+```
+
+`cat /sys/class/graphics/fb*/name` should then show `ili9486drmfb`, and `cat /dev/urandom > /dev/fb0` fills the screen with static. If the image is upside down use `rotate=90`. Preview the art on any computer with `python display/squirrel.py --preview squirrel.gif`.

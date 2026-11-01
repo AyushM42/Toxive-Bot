@@ -1,4 +1,5 @@
 import asyncio
+import signal
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -205,6 +206,16 @@ def run_discord_bot():
                 status.set_state("talking")
             elif not ai_in_flight["n"]:
                 status.set_state("idle")
+
+    async def setup_hook():
+        # `systemctl stop` sends SIGTERM. Close the Discord connection properly instead of just
+        # dying, so Jr shows offline right away rather than about a minute later.
+        try:
+            asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(client.close()))
+        except NotImplementedError:
+            pass  # Windows
+
+    client.setup_hook = setup_hook
 
     def load_model():
         try:
